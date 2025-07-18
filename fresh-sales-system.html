@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Data Entry System - Sri Lanka</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 700; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .controls { padding: 25px; background: #f8f9fa; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #e9ecef; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 0.95em; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .btn-primary { background: #4299e1; color: white; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-danger { background: #f56565; color: white; }
+        .btn-info { background: #38b2ac; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .table-container { padding: 30px; overflow-x: auto; }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .excel-table th { background: #2d3748; color: white; padding: 15px 10px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+        .excel-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+        .excel-table tr:nth-child(even) { background: #f7fafc; }
+        .excel-table tr:hover { background: #edf2f7; }
+        .cell-input, .cell-select { width: 100%; border: none; background: transparent; padding: 6px; font-size: 0.9em; outline: none; }
+        .cell-select { cursor: pointer; }
+        .cell-input:focus, .cell-select:focus { background: #fefcbf; border: 2px solid #d69e2e; border-radius: 4px; }
+        .row-number { background: #edf2f7; text-align: center; font-weight: bold; color: #4a5568; width: 60px; }
+        .delete-btn { background: #f56565; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .delete-btn:hover { background: #e53e3e; }
+        .summary-row { background: #f0fff4; font-weight: bold; }
+        .summary-row td { border-top: 3px solid #48bb78; }
+        .status { padding: 15px 30px; margin: 0; font-weight: 500; }
+        .status.success { background: #f0fff4; color: #22543d; border-left: 4px solid #48bb78; }
+        .status.error { background: #fed7d7; color: #742a2a; border-left: 4px solid #f56565; }
+        .status.info { background: #ebf8ff; color: #2a4365; border-left: 4px solid #4299e1; }
+        .info-banner { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; margin: 20px; border-radius: 10px; text-align: center; }
+        .feature-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px; }
+        .feature-item { background: #f7fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #4299e1; }
+        @media (max-width: 768px) { .controls { flex-direction: column; align-items: stretch; } .btn { margin-bottom: 10px; } .table-container { padding: 15px; } .excel-table { font-size: 0.8em; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Sales Data Entry System</h1>
+            <p>Sri Lanka Business Management - Homagama | Negombo | Baddegama</p>
+        </div>
+        
+        <div class="info-banner">
+            <h3>🚀 Team Collaboration Ready!</h3>
+            <p>Excel-like interface • Real-time updates • Google Sheets integration • Mobile friendly</p>
+        </div>
+        
+        <div class="feature-list">
+            <div class="feature-item">
+                <h4>📝 Easy Data Entry</h4>
+                <p>Excel-like interface with dropdown menus for consistent data entry</p>
+            </div>
+            <div class="feature-item">
+                <h4>📊 Instant Reports</h4>
+                <p>Generate summary reports by branch, category, or sales person</p>
+            </div>
+            <div class="feature-item">
+                <h4>📥 Export Options</h4>
+                <p>Download as Excel files or export to Google Sheets for team sharing</p>
+            </div>
+            <div class="feature-item">
+                <h4>💰 LKR Currency</h4>
+                <p>Built specifically for Sri Lankan businesses with local payment methods</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="addNewRow()">➕ Add New Record</button>
+            <button class="btn btn-success" onclick="downloadExcel()">📥 Download Excel</button>
+            <button class="btn btn-info" onclick="exportForGoogleSheets()">📊 Export for Google Sheets</button>
+            <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 20px;">
+                <span style="color: #4a5568; font-weight: 600;">Total Records: <span id="recordCount">0</span></span>
+                <span style="color: #4a5568; font-weight: 600;">Total Amount: LKR <span id="totalAmount">0.00</span></span>
+            </div>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="table-container">
+            <table class="excel-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Branch</th>
+                        <th>Month</th>
+                        <th>Invoice No</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Amount (LKR)</th>
+                        <th>Payment Method</th>
+                        <th>Account</th>
+                        <th>Sales Person</th>
+                        <th>Handle Person</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        let salesData = JSON.parse(localStorage.getItem('salesData') || '[]');
+        
+        const dropdownOptions = {
+            branch: ['', 'Negombo', 'Homagama', 'Baddegama'],
+            salesPerson: ['', 'A', 'B', 'C', 'D', 'E', 'F'],
+            handlePerson: ['', 'A', 'B', 'C', 'D', 'E', 'F'],
+            category: ['', 'Laptop', 'Accessories'],
+            paymentMethod: ['', 'Cash', 'Bank Transfer', 'Koko', 'Payzy', 'Credit Card'],
+            account: ['', 'Seylan Bank', 'HNB Bank', 'N/A']
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTable();
+            if (salesData.length === 0) addNewRow();
+            setInterval(autoSave, 3000);
+        });
+        
+        function autoSave() {
+            localStorage.setItem('salesData', JSON.stringify(salesData));
+        }
+        
+        function createDropdown(optionType, currentValue = '', onChangeHandler = '') {
+            let html = `<select class="cell-select" ${onChangeHandler}>`;
+            dropdownOptions[optionType].forEach(option => {
+                const selected = option === currentValue ? 'selected' : '';
+                html += `<option value="${option}" ${selected}>${option}</option>`;
+            });
+            html += '</select>';
+            return html;
+        }
+        
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            salesData.forEach((record, index) => {
+                tbody.appendChild(createTableRow(record, index));
+            });
+            
+            addSummaryRow();
+            updateTotals();
+        }
+        
+        function createTableRow(record = {}, index = -1) {
+            const tr = document.createElement('tr');
+            const rowIndex = index === -1 ? salesData.length : index;
+            
+            tr.innerHTML = `
+                <td class="row-number">${rowIndex + 1}</td>
+                <td>${createDropdown('branch', record.branch || '', `onchange="updateRecord(${rowIndex}, 'branch', this.value)"`)}</td>
+                <td><input type="number" class="cell-input" value="${record.month || ''}" min="1" max="12" placeholder="1-12" onchange="updateRecord(${rowIndex}, 'month', this.value)"></td>
+                <td><input type="text" class="cell-input" value="${record.invoiceNo || ''}" placeholder="INV-0001" onchange="updateRecord(${rowIndex}, 'invoiceNo', this.value)"></td>
+                <td><input type="date" class="cell-input" value="${record.date || ''}" onchange="updateRecord(${rowIndex}, 'date', this.value)"></td>
+                <td>${createDropdown('category', record.category || '', `onchange="updateRecord(${rowIndex}, 'category', this.value)"`)}</td>
+                <td><input type="number" class="cell-input" value="${record.quantity || ''}" min="1" placeholder="1" onchange="updateRecord(${rowIndex}, 'quantity', this.value)"></td>
+                <td><input type="number" class="cell-input" value="${record.amount || ''}" step="0.01" placeholder="0.00" onchange="updateRecord(${rowIndex}, 'amount', this.value)"></td>
+                <td>${createDropdown('paymentMethod', record.paymentMethod || '', `onchange="updateRecord(${rowIndex}, 'paymentMethod', this.value)"`)}</td>
+                <td>${createDropdown('account', record.account || '', `onchange="updateRecord(${rowIndex}, 'account', this.value)"`)}</td>
+                <td>${createDropdown('salesPerson', record.salesPerson || '', `onchange="updateRecord(${rowIndex}, 'salesPerson', this.value)"`)}</td>
+                <td>${createDropdown('handlePerson', record.handlePerson || '', `onchange="updateRecord(${rowIndex}, 'handlePerson', this.value)"`)}</td>
+                <td><button class="delete-btn" onclick="deleteRecord(${rowIndex})">🗑️ Delete</button></td>
+            `;
+            return tr;
+        }
+        
+        function updateRecord(index, field, value) {
+            while (salesData.length <= index) {
+                salesData.push({});
+            }
+            
+            salesData[index][field] = value;
+            
+            if (field === 'invoiceNo' && !value) {
+                salesData[index][field] = `INV-${String(index + 1).padStart(4, '0')}`;
+            }
+            
+            renderTable();
+            showStatus('Record updated successfully', 'success');
+        }
+        
+        function addNewRow() {
+            const newRecord = {
+                branch: '',
+                month: '',
+                invoiceNo: `INV-${String(salesData.length + 1).padStart(4, '0')}`,
+                date: new Date().toISOString().split('T')[0],
+                category: '',
+                quantity: '',
+                amount: '',
+                paymentMethod: '',
+                account: '',
+                salesPerson: '',
+                handlePerson: ''
+            };
+            
+            salesData.push(newRecord);
+            renderTable();
+            showStatus('New record added', 'success');
+        }
+        
+        function deleteRecord(index) {
+            if (confirm('Are you sure you want to delete this record?')) {
+                salesData.splice(index, 1);
+                renderTable();
+                showStatus('Record deleted', 'info');
+            }
+        }
+        
+        function addSummaryRow() {
+            const tbody = document.getElementById('tableBody');
+            const summaryRow = document.createElement('tr');
+            summaryRow.classList.add('summary-row');
+            
+            const totalAmount = salesData.reduce((sum, record) => sum + (parseFloat(record.amount) || 0), 0);
+            const totalQuantity = salesData.reduce((sum, record) => sum + (parseInt(record.quantity) || 0), 0);
+            
+            summaryRow.innerHTML = `
+                <td class="row-number">Σ</td>
+                <td colspan="5"><strong>TOTAL SUMMARY</strong></td>
+                <td><strong>${totalQuantity}</strong></td>
+                <td><strong>LKR ${totalAmount.toFixed(2)}</strong></td>
+                <td colspan="5"></td>
+            `;
+            
+            tbody.appendChild(summaryRow);
+        }
+        
+        function updateTotals() {
+            const totalRecords = salesData.length;
+            const totalAmount = salesData.reduce((sum, record) => sum + (parseFloat(record.amount) || 0), 0);
+            
+            document.getElementById('recordCount').textContent = totalRecords;
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+        }
+        
+        function downloadExcel() {
+            if (salesData.length === 0) {
+                showStatus('No data to export', 'error');
+                return;
+            }
+            
+            const exportData = salesData.map(record => ({
+                'Branch': record.branch || '',
+                'Month': record.month || '',
+                'Invoice No': record.invoiceNo || '',
+                'Date': record.date || '',
+                'Category': record.category || '',
+                'Quantity': record.quantity || '',
+                'Amount (LKR)': record.amount || '',
+                'Payment Method': record.paymentMethod || '',
+                'Account': record.account || '',
+                'Sales Person': record.salesPerson || '',
+                'Handle Person': record.handlePerson || ''
+            }));
+            
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            
+            const totalAmount = salesData.reduce((sum, record) => sum + (parseFloat(record.amount) || 0), 0);
+            const totalQuantity = salesData.reduce((sum, record) => sum + (parseInt(record.quantity) || 0), 0);
+            
+            XLSX.utils.sheet_add_aoa(worksheet, [
+                ['', '', '', '', '', 'TOTAL', totalQuantity, totalAmount, '', '', '']
+            ], {origin: `A${exportData.length + 2}`});
+            
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales Data');
+            
+            const fileName = `sales_data_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+            
+            showStatus('Excel file downloaded successfully!', 'success');
+        }
+        
+        function exportForGoogleSheets() {
+            if (salesData.length === 0) {
+                showStatus('No data to export', 'error');
+                return;
+            }
+            
+            const csvData = convertToCSV(salesData);
+            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `sales_data_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            showStatus('CSV file ready for Google Sheets!', 'success');
+            
+            setTimeout(() => {
+                alert('Instructions for Google Sheets:\n\n1. Open Google Sheets\n2. Create new spreadsheet\n3. File → Import → Upload\n4. Choose the downloaded CSV file\n5. Share with your team for collaboration!');
+            }, 1000);
+        }
+        
+        function convertToCSV(data) {
+            const headers = ['Branch', 'Month', 'Invoice No', 'Date', 'Category', 'Quantity', 'Amount (LKR)', 'Payment Method', 'Account', 'Sales Person', 'Handle Person'];
+            const csvRows = [headers.join(',')];
+            
+            data.forEach(record => {
+                const row = [
+                    record.branch || '',
+                    record.month || '',
+                    record.invoiceNo || '',
+                    record.date || '',
+                    record.category || '',
+                    record.quantity || '',
+                    record.amount || '',
+                    record.paymentMethod || '',
+                    record.account || '',
+                    record.salesPerson || '',
+                    record.handlePerson || ''
+                ].map(field => `"${field}"`).join(',');
+                csvRows.push(row);
+            });
+            
+            return csvRows.join('\n');
+        }
+        
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                salesData = [];
+                localStorage.removeItem('salesData');
+                renderTable();
+                addNewRow();
+                showStatus('All data cleared', 'info');
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
